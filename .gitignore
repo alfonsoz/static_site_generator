@@ -1,1 +1,11 @@
 __pycache__/
+
+#compiled python bytecode
+*.pyc
+
+#sec/credentials
+.env
+
+#virtual environments/directories
+venv/
+.venv/
