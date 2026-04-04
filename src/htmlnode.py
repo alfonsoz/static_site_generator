@@ -1,4 +1,6 @@
 # HTML node class, all data members are optional and None as default
+# HTMLNode represents a node in an HTML tree, including its tag, content,
+# child nodes, and optional attributes that can be rendered as HTML.
 class HTMLNode:
     def __init__(self, tag=None, value=None, children=None, props=None):
         self.tag = tag

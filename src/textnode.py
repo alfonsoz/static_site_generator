@@ -1,3 +1,5 @@
+# TextNode represents a piece of markdown text and the kind of text it is,
+# such as plain text, bold, italic, code, link, or image.
 from enum import Enum
 
 
