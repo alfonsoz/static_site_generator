@@ -1,10 +1,11 @@
 # TextNode represents a piece of markdown text and the kind of text it is,
 # such as plain text, bold, italic, code, link, or image.
 from enum import Enum
+import htmlnode
 
 
 class TextType(Enum):
-    TEXT = "plain"
+    TEXT = "text"
     BOLD = "bold"
     ITALIC = "italic"
     CODE = "code"
@@ -31,3 +32,22 @@ class TextNode:
     # representation, returns a string representation of the TextNode object
     def __repr__(self):
         return f"TextNode({self.text}, {self.text_type.value}, {self.url})"
+
+
+# convert text nodes to html node
+def text_node_to_html_node(text_node):
+    if text_node.text_type == TextType.TEXT:
+        return htmlnode.LeafNode(None, text_node.text)
+    if text_node.text_type == TextType.BOLD:
+        return htmlnode.LeafNode("b", text_node.text)
+    if text_node.text_type == TextType.ITALIC:
+        return htmlnode.LeafNode("i", text_node.text)
+    if text_node.text_type == TextType.CODE:
+        return htmlnode.LeafNode("code", text_node.text)
+    if text_node.text_type == TextType.LINK:
+        return htmlnode.LeafNode("a", text_node.text, {"href": text_node.url})
+    if text_node.text_type == TextType.IMAGE:
+        return htmlnode.LeafNode(
+            "img", "", props={"src": text_node.url, "alt": text_node.text}
+        )
+    raise Exception(f"Texttype not supported: {text_node.text_type}")
