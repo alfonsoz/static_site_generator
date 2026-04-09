@@ -2,6 +2,7 @@ import unittest
 
 from textnode import TextNode, TextType, text_node_to_html_node
 from htmlnode import HTMLNode, LeafNode, ParentNode
+from inline_markdown_parser import split_nodes_delimiter
 
 
 class TestConversions(unittest.TestCase):
@@ -63,4 +64,101 @@ class TestConversions(unittest.TestCase):
         node = TextNode("this should be a wrong type", "WRONG")
         with self.assertRaises(Exception) as e:
             html_node = text_node_to_html_node(node)
+        # print(e.exception)
+
+    # ============= Split_nodes_delimiter tests ================
+    # ============= markdown_parser.py          ================
+    def test_text_without_delimiter(self):
+        node = [TextNode("this is some text", TextType.TEXT)]
+        new_node = split_nodes_delimiter(node, "'", TextType.TEXT)
+        # print(f"{new_node}")
+        self.assertEqual(new_node[0].text, "this is some text")
+
+    def test_text_with_code_delimiter(self):
+        node = [TextNode("this is some text with a 'code' block", TextType.TEXT)]
+        new_nodes = split_nodes_delimiter(node, "'", TextType.CODE)
+        # print(f"{new_nodes}")
+        result1 = TextNode("this is some text with a ", TextType.TEXT)
+        result2 = TextNode("code", TextType.CODE)
+        result3 = TextNode(" block", TextType.TEXT)
+        self.assertEqual(new_nodes, [result1, result2, result3])
+
+    def test_text_with_bold_delimiter(self):
+        node = [
+            TextNode(
+                "this is some text with a **bolded phrase** and nothing else",
+                TextType.TEXT,
+            )
+        ]
+        new_nodes = split_nodes_delimiter(node, "**", TextType.BOLD)
+        # print(f"{new_nodes}")
+        result1 = TextNode("this is some text with a ", TextType.TEXT)
+        result2 = TextNode("bolded phrase", TextType.BOLD)
+        result3 = TextNode(" and nothing else", TextType.TEXT)
+        self.assertEqual(new_nodes, [result1, result2, result3])
+
+    def test_text_with_italic_delimiter(self):
+        node = [
+            TextNode(
+                "this is some text with an _italic phrase_ and nothing else",
+                TextType.TEXT,
+            )
+        ]
+        new_nodes = split_nodes_delimiter(node, "_", TextType.ITALIC)
+        # print(f"{new_nodes}")
+        result1 = TextNode("this is some text with an ", TextType.TEXT)
+        result2 = TextNode("italic phrase", TextType.ITALIC)
+        result3 = TextNode(" and nothing else", TextType.TEXT)
+        self.assertEqual(new_nodes, [result1, result2, result3])
+
+    def test_text_with_different_delimiters(self):
+        node = [
+            TextNode(
+                "this is some text with a **bolded phrase** an _italic phrase_ and a 'code block'.",
+                TextType.TEXT,
+            )
+        ]
+        # chain them together
+        new_nodes = split_nodes_delimiter(node, "**", TextType.BOLD)
+        new_nodes = split_nodes_delimiter(new_nodes, "_", TextType.ITALIC)
+        new_nodes = split_nodes_delimiter(new_nodes, "'", TextType.CODE)
+        # print(f"{new_nodes}")
+        result1 = TextNode("this is some text with a ", TextType.TEXT)
+        result2 = TextNode("bolded phrase", TextType.BOLD)
+        result3 = TextNode(" an ", TextType.TEXT)
+        result4 = TextNode("italic phrase", TextType.ITALIC)
+        result5 = TextNode(" and a ", TextType.TEXT)
+        result6 = TextNode("code block", TextType.CODE)
+        result7 = TextNode(".", TextType.TEXT)
+        self.assertEqual(
+            new_nodes, [result1, result2, result3, result4, result5, result6, result7]
+        )
+
+    def test_text_mixed_nodes(self):
+        node = TextNode("this has a **bold** phrase inside", TextType.BOLD)
+        node2 = TextNode("this has a 'code block' in it", TextType.TEXT)
+        new_nodes = split_nodes_delimiter([node, node2], "**", TextType.BOLD)
+        result1 = TextNode("this has a **bold** phrase inside", TextType.BOLD)
+        result2 = TextNode("this has a 'code block' in it", TextType.TEXT)
+        self.assertEqual(new_nodes, [result1, result2])
+
+    def test_text_mixed_nodes_2(self):
+        node = TextNode("this has a **bold** __phrase_ 'inside", TextType.BOLD)
+        node2 = TextNode("this ** has a 'code block' in it", TextType.TEXT)
+        new_nodes = split_nodes_delimiter([node, node2], "'", TextType.CODE)
+        result1 = TextNode("this has a **bold** __phrase_ 'inside", TextType.BOLD)
+        result2 = TextNode("this ** has a ", TextType.TEXT)
+        result3 = TextNode("code block", TextType.CODE)
+        result4 = TextNode(" in it", TextType.TEXT)
+        self.assertEqual(new_nodes, [result1, result2, result3, result4])
+
+    def test_text_no_closing_delimiter(self):
+        node = [
+            TextNode(
+                "this is some text with a 'code block that has no end delimiter",
+                TextType.TEXT,
+            )
+        ]
+        with self.assertRaises(Exception) as e:
+            new_nodes = split_nodes_delimiter(node, "'", TextType.CODE)
         # print(e.exception)
