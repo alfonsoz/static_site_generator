@@ -2,7 +2,11 @@ import unittest
 
 from textnode import TextNode, TextType, text_node_to_html_node
 from htmlnode import HTMLNode, LeafNode, ParentNode
-from inline_markdown_parser import split_nodes_delimiter
+from inline_markdown_parser import (
+    split_nodes_delimiter,
+    extract_markdown_images,
+    extract_markdown_links,
+)
 
 
 class TestConversions(unittest.TestCase):
@@ -162,3 +166,85 @@ class TestConversions(unittest.TestCase):
         with self.assertRaises(Exception) as e:
             new_nodes = split_nodes_delimiter(node, "'", TextType.CODE)
         # print(e.exception)
+
+    ##test regex stuff
+    # images
+    def test_one_image(self):
+        text = "This is a text with one image ![one image](awesome_image.jpeg) and nothing else"
+        result = extract_markdown_images(text)
+        self.assertEqual(result, [("one image", "awesome_image.jpeg")])
+
+    def test_multiple_image(self):
+        text = "This is a text with this ![one image](awesome_image.jpeg) and this: ![hello](sdhjfkeuiag£$46£$%&*.png) and also this: ![what up](another_image.jpg)"
+        result = extract_markdown_images(text)
+        self.assertEqual(
+            result,
+            [
+                ("one image", "awesome_image.jpeg"),
+                ("hello", "sdhjfkeuiag£$46£$%&*.png"),
+                ("what up", "another_image.jpg"),
+            ],
+        )
+
+    def test_image_wrong_closing(self):
+        text = "This is a text with this ![one image(awesome_image.jpeg) and this: ![hello](sdhjfkeuiag£$46£$%&*.png) and also this: ![what up](another_image.jpg)"
+        result = extract_markdown_images(text)
+        self.assertEqual(
+            result,
+            [
+                ("hello", "sdhjfkeuiag£$46£$%&*.png"),
+                ("what up", "another_image.jpg"),
+            ],
+        )
+
+    def test_image_as_link(self):
+        text = "This is a text with this [one image](awesome_image.jpeg) and this: ![hello](sdhjfkeuiag£$46£$%&*.png) and also this: ![what up](another_image.jpg)"
+        result = extract_markdown_images(text)
+        self.assertEqual(
+            result,
+            [
+                ("hello", "sdhjfkeuiag£$46£$%&*.png"),
+                ("what up", "another_image.jpg"),
+            ],
+        )
+
+    # regex
+    # urls/links
+    def test_one_link(self):
+        text = "this is a text with a link: [kagi search](www.kagi.com)"
+        result = extract_markdown_links(text)
+        self.assertEqual(result, [("kagi search", "www.kagi.com")])
+
+    def test_multiple_links(self):
+        text = f"this is a text with multiple links: [kagi search](www.kagi.com) and: [google](www.google.com) but also: [boot](www.boot.dev)"
+        result = extract_markdown_links(text)
+        self.assertEqual(
+            result,
+            [
+                ("kagi search", "www.kagi.com"),
+                ("google", "www.google.com"),
+                ("boot", "www.boot.dev"),
+            ],
+        )
+
+    def test_links_wrong_closing(self):
+        text = f"this is a text with multiple links: [kagi search](www.kagi.com and: [google](www.google.com) but also: [boot](www.boot.dev)"
+        result = extract_markdown_links(text)
+        self.assertEqual(
+            result,
+            [
+                ("google", "www.google.com"),
+                ("boot", "www.boot.dev"),
+            ],
+        )
+
+    def test_links_as_image(self):
+        text = f"this is a text with multiple links: ![kagi search](www.kagi.com) and: [google](www.google.com) but also: [boot](www.boot.dev)"
+        result = extract_markdown_links(text)
+        self.assertEqual(
+            result,
+            [
+                ("google", "www.google.com"),
+                ("boot", "www.boot.dev"),
+            ],
+        )
